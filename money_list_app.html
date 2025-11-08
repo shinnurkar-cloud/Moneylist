@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Money Collection List</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen p-6">
+
+<div class="max-w-3xl mx-auto bg-white shadow-lg rounded-2xl p-6">
+  <h2 class="text-2xl font-semibold text-gray-700 mb-4 text-center">Money Collection List</h2>
+
+  <div class="flex flex-col sm:flex-row gap-4 mb-4">
+    <input id="nameInput" type="text" placeholder="Enter Name" class="flex-1 border rounded-lg px-4 py-2 focus:ring focus:ring-blue-300" />
+    <input id="amountInput" type="number" placeholder="Enter Amount" class="flex-1 border rounded-lg px-4 py-2 focus:ring focus:ring-blue-300" />
+  </div>
+
+  <div class="flex flex-wrap gap-2 mb-6">
+    <button onclick="addEntry()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Submit</button>
+    <button onclick="undoEntry()" class="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600">Undo</button>
+    <button onclick="exportPDF()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Export PDF</button>
+    <button onclick="exportExcel()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Export Excel</button>
+  </div>
+
+  <div class="overflow-x-auto">
+    <table id="dataTable" class="w-full border rounded-lg overflow-hidden">
+      <thead class="bg-gray-200 text-gray-700">
+        <tr>
+          <th class="px-4 py-2 border">Sr. No</th>
+          <th class="px-4 py-2 border">Name</th>
+          <th class="px-4 py-2 border">Amount</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div id="totalBox" class="text-right text-lg font-semibold text-gray-800 mt-4">Total Amount: 0</div>
+</div>
+
+<script>
+  let entries = [];
+
+  function addEntry() {
+    const name = document.getElementById('nameInput').value.trim();
+    const amount = parseFloat(document.getElementById('amountInput').value);
+    if (!name || isNaN(amount)) { alert('Please enter valid Name and Amount'); return; }
+    entries.push({ name, amount });
+    document.getElementById('nameInput').value = '';
+    document.getElementById('amountInput').value = '';
+    updateTable();
+  }
+
+  function undoEntry() {
+    entries.pop();
+    updateTable();
+  }
+
+  function updateTable() {
+    const tableBody = document.querySelector('#dataTable tbody');
+    tableBody.innerHTML = '';
+    let total = 0;
+    entries.forEach((entry, index) => {
+      total += entry.amount;
+      const row = `<tr class='border'>
+        <td class='px-4 py-2 border'>${index + 1}</td>
+        <td class='px-4 py-2 border'>${entry.name}</td>
+        <td class='px-4 py-2 border'>${entry.amount}</td>
+      </tr>`;
+      tableBody.innerHTML += row;
+    });
+    document.getElementById('totalBox').innerText = 'Total Amount: ' + total;
+  }
+
+  function exportPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.text('Money Collection List', 14, 10);
+    const rows = entries.map((e, i) => [i+1, e.name, e.amount]);
+    doc.autoTable({ head: [['Sr. No', 'Name', 'Amount']], body: rows, startY: 20 });
+    doc.text(`Total Amount: ${entries.reduce((sum, e) => sum + e.amount, 0)}`, 14, doc.lastAutoTable.finalY + 10);
+    doc.save('money_list.pdf');
+  }
+
+  function exportExcel() {
+    const wsData = [['Sr. No', 'Name', 'Amount']];
+    entries.forEach((e, i) => wsData.push([i+1, e.name, e.amount]));
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    XLSX.utils.book_append_sheet(wb, ws, 'Money List');
+    XLSX.writeFile(wb, 'money_list.xlsx');
+  }
+</script>
+
+</body>
+</html>
